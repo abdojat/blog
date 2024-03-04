@@ -1,22 +1,52 @@
-//jshint esversion:6
+const express = require('express');
+const bodyParser = require('body-parser');
+const ejs = require('ejs');
+const _ = require('lodash');
+const mongoose = require('mongoose');
+const { ListCollectionsCursor } = require('mongodb');
 
-const express = require("express");
-const bodyParser = require("body-parser");
-const ejs = require("ejs");
-const _ = require("lodash");
+const uri = "mongodb+srv://abdojat:qazedfcujm@cluster0.w4z0kmh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
+const url = "mongodb://localhost:27017/blogDB";
+mongoose.connect(uri);
+
+const postSchema = {
+  title: {
+    type: String,
+    required: true
+  },
+  blogContent: {
+    type: String,
+    required: true
+  }
+};
+
+const Post = mongoose.model('Post', postSchema);
+
 const homeStartingContent = "This is a blog by AbdAlmajeed Al-Awad.";
 const aboutContent = "I am a software engineer student in HIAST and I am working on creating new web sites to improve my experience.";
 const contactContent = "";
 const app = express();
 const posts = [];
-app.set('view engine', 'ejs');
 
+app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
+let myPosts = function () {
+  return Post.find({}).then(token => { return token; });
+}
+
+let findPost = function (id) {
+  return Post.find({ _id: id }).then(token => { return token; });
+}
+
 
 app.get('/', (req, res) => {
-  res.render('home', { homePara: homeStartingContent, publishPosts: posts });
+  let findingMyPosts = myPosts();
+  findingMyPosts.then((result) => {
+    res.render('home', { homePara: homeStartingContent, publishPosts: result });
+  });
 });
 
 app.get('/about', (req, res) => {
@@ -33,34 +63,22 @@ app.get('/compose', (req, res) => {
 });
 
 app.post('/compose', (req, res) => {
-  newPost = {
+  const newPost = new Post({
     title: req.body.title,
-    post: req.body.post
-  }
-  posts.push(newPost);
+    blogContent: req.body.post
+  });
+  newPost.save();
   console.log(newPost);
   res.redirect('/');
 });
 
 
-app.get('/posts/:topic', (req, res) => {
-  const topic = _.lowerCase(req.params.topic);
-  var found = false;
-  var i=0;
-  var pos =0;
- posts.forEach((post) => {
-    if (_.lowerCase(post.title) === _.lowerCase(topic)) {
-      found = true;
-      pos=i;
-    }
-    i++;
-  });
-  if (found) {
-    res.render('post', { post : posts[pos] });
-    console.log("yes");
-  }
-  else
-    console.log(topic);
+app.get('/posts/:id', (req, res) => {
+  const id = req.params.id;
+  let wantedPost = findPost(id);
+  wantedPost.then(result=>{
+    res.render('post',{post:result[0]});
+  })
 });
 
 
