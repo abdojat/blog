@@ -8,14 +8,17 @@ const { ListCollectionsCursor } = require('mongodb');
 const uri = "mongodb+srv://abdojat:qazedfcujm@cluster0.w4z0kmh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 const url = "mongodb://localhost:27017/blogDB";
-mongoose.connect(uri);
+
+const articleRoute = "https://threebdojapi.onrender.com/articles"
+
+mongoose.connect(url);
 
 const postSchema = {
   title: {
     type: String,
     required: true
   },
-  blogContent: {
+  content: {
     type: String,
     required: true
   }
@@ -33,20 +36,28 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-let myPosts = function () {
-  return Post.find({}).then(token => { return token; });
+function encodeFormData(data) {
+  return Object.keys(data)
+    .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(data[key]))
+    .join('&');
 }
 
 let findPost = function (id) {
   return Post.find({ _id: id }).then(token => { return token; });
 }
 
-
 app.get('/', (req, res) => {
-  let findingMyPosts = myPosts();
-  findingMyPosts.then((result) => {
-    res.render('home', { homePara: homeStartingContent, publishPosts: result });
-  });
+  fetch(articleRoute)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok ' + response.statusText);
+      }
+      return response.json();
+    })
+    .then((result) => {
+      console.log(result);
+      res.render('home', { homePara: homeStartingContent, publishPosts: result });
+    });
 });
 
 app.get('/about', (req, res) => {
@@ -65,20 +76,49 @@ app.get('/compose', (req, res) => {
 app.post('/compose', (req, res) => {
   const newPost = new Post({
     title: req.body.title,
-    blogContent: req.body.post
+    content: req.body.post
   });
-  newPost.save();
+  //newPost.save();
   console.log(newPost);
-  res.redirect('/');
+  fetch(articleRoute, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+       },
+    body: encodeFormData({
+      title: req.body.title,
+      content: req.body.post}
+    )
+  })  
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok ' + response.statusText);
+      }
+      return response;
+    })
+    .then(data => {
+      console.log('Success:', data);
+      res.redirect('/');
+    })
+    .catch(error => {
+      console.error('There was a problem with the fetch operation:', error);
+    });
 });
 
 
 app.get('/posts/:id', (req, res) => {
   const id = req.params.id;
-  let wantedPost = findPost(id);
-  wantedPost.then(result=>{
-    res.render('post',{post:result[0]});
-  })
+  fetch(articleRoute + "/" + id)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok ' + response.statusText);
+      }
+      return response.json();
+    })
+    .then((result) => {
+      console.log(result);
+      res.render('post', { post: result });
+    });
 });
 
 
