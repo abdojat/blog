@@ -5,13 +5,7 @@ const _ = require('lodash');
 const mongoose = require('mongoose');
 const { ListCollectionsCursor } = require('mongodb');
 
-const uri = "mongodb+srv://abdojat:qazedfcujm@cluster0.w4z0kmh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-const url = "mongodb://localhost:27017/blogDB";
-
 const articleRoute = "https://threebdojapi.onrender.com/articles"
-
-mongoose.connect(url);
 
 const postSchema = {
   title: {
